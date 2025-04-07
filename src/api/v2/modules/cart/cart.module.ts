@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 
-import { UserModule } from '@v2/modules';
+import { ProductModule, UserModule } from '@v2/modules';
 import { CacheModule } from '@v2/modules/cache/cache.module';
 import { CartController } from '@v2/modules/cart/cart.controller';
 import { CART_TOKENS } from '@v2/modules/cart/constants';
@@ -9,7 +9,7 @@ import { CartCommandService, CartQueryService } from '@v2/modules/cart/services'
 import { CommonModule } from '@v2/modules/common/common.module';
 
 @Module({
-    imports: [CommonModule, UserModule, CacheModule.register({})],
+    imports: [CommonModule, UserModule, ProductModule, CacheModule.register({})],
     controllers: [CartController],
     providers: [
         {
@@ -29,6 +29,11 @@ import { CommonModule } from '@v2/modules/common/common.module';
             useClass: CartQueryService,
         },
     ],
-    exports: [CART_TOKENS.SERVICES.COMMAND, CART_TOKENS.SERVICES.QUERY],
+    exports: [
+        CART_TOKENS.SERVICES.COMMAND,
+        CART_TOKENS.SERVICES.QUERY,
+        CART_TOKENS.REPOSITORIES.COMMAND,
+        CART_TOKENS.REPOSITORIES.QUERY,
+    ],
 })
 export class CartModule {}

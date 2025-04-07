@@ -1,26 +1,21 @@
-import { ProductCartResponse } from '@/prisma/selectors/cart/cart.selector';
+import { Cart } from '@/prisma/selectors';
 import {
     CreateCartDto,
     UpdateCartDto,
-    ChangeProductOptionDto,
+    ChangeVariantDto,
     DeleteCartDto,
 } from '@v2/modules/cart/dto';
 
 export interface ICartQueryService {
-    findUserCart(userId: string, productOptionId: string): Promise<any>;
-    findProductsByUserId(userId: string): Promise<ProductCartResponse[]>;
-    convertResponse(productCartDB: any): ProductCartResponse;
+    findById(cartId: string): Promise<Cart>;
+    findByUserId(userId: string): Promise<Cart>;
+    findByVariantId(userId: string, variantId: string): Promise<Cart>;
 }
 
 export interface ICartCommandService {
-    addProductToCart(userId: string, createCartDto: CreateCartDto): Promise<ProductCartResponse>;
-    changeProductOption(
-        userId: string,
-        changeProductOptionDto: ChangeProductOptionDto,
-    ): Promise<ProductCartResponse>;
-    updateProductQuantity(
-        userId: string,
-        updateCartDto: UpdateCartDto,
-    ): Promise<ProductCartResponse>;
-    deleteProduct(userId: string, deleteCartDto: DeleteCartDto): Promise<{ is_success: boolean }>;
+    addItem(userId: string, createCartDto: CreateCartDto): Promise<Cart>;
+    changeVariant(userId: string, changeVariantDto: ChangeVariantDto): Promise<Cart>;
+    updateQuantity(userId: string, updateCartDto: UpdateCartDto): Promise<Cart>;
+    deleteItem(userId: string, deleteCartDto: DeleteCartDto): Promise<boolean>;
+    clearItems(userId: string, variantIds: string[]): Promise<boolean>;
 }

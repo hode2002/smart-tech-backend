@@ -16,15 +16,12 @@ import { GetUserId, ResponseMessage } from '@/common/decorators';
 import { AtJwtGuard } from '@v2/modules/auth/guards';
 import { CART_TOKENS } from '@v2/modules/cart/constants';
 import {
-    ChangeProductOptionDto,
+    ChangeVariantDto,
     CreateCartDto,
     DeleteCartDto,
     UpdateCartDto,
 } from '@v2/modules/cart/dto';
-import {
-    ICartCommandService,
-    ICartQueryService,
-} from '@v2/modules/cart/interfaces/cart.service.interface';
+import { ICartCommandService, ICartQueryService } from '@v2/modules/cart/interfaces';
 
 @ApiTags('Cart')
 @ApiBearerAuth('access-token')
@@ -48,26 +45,23 @@ export class CartController {
     @ResponseMessage('Add to cart success')
     @UseGuards(AtJwtGuard)
     @HttpCode(HttpStatus.CREATED)
-    async addProductToCart(@GetUserId() userId: string, @Body() createCartDto: CreateCartDto) {
-        return this.cartCommandService.addProductToCart(userId, createCartDto);
+    async addItem(@GetUserId() userId: string, @Body() createCartDto: CreateCartDto) {
+        return this.cartCommandService.addItem(userId, createCartDto);
     }
 
-    @Post('change-product-option')
-    @ApiOperation({ summary: 'Change product option in cart' })
-    @ApiBody({ type: ChangeProductOptionDto })
+    @Post('change-variant')
+    @ApiOperation({ summary: 'Change product variant in cart' })
+    @ApiBody({ type: ChangeVariantDto })
     @ApiResponse({
         status: 200,
-        description: 'Product option changed successfully',
+        description: 'Product variant changed successfully',
     })
     @ApiResponse({ status: 404, description: 'User, cart item, or product not found' })
-    @ResponseMessage('Add to cart success')
+    @ResponseMessage('Change variant success')
     @UseGuards(AtJwtGuard)
     @HttpCode(HttpStatus.OK)
-    async changeProductOption(
-        @GetUserId() userId: string,
-        @Body() changeProductOptionDto: ChangeProductOptionDto,
-    ) {
-        return this.cartCommandService.changeProductOption(userId, changeProductOptionDto);
+    async changeVariant(@GetUserId() userId: string, @Body() changeVariantDto: ChangeVariantDto) {
+        return this.cartCommandService.changeVariant(userId, changeVariantDto);
     }
 
     @Get()
@@ -80,8 +74,8 @@ export class CartController {
     @ResponseMessage('Get products from cart success')
     @UseGuards(AtJwtGuard)
     @HttpCode(HttpStatus.OK)
-    async findProductsByUserId(@GetUserId() userId: string) {
-        return this.cartQueryService.findProductsByUserId(userId);
+    async findItems(@GetUserId() userId: string) {
+        return this.cartQueryService.findByUserId(userId);
     }
 
     @Patch()
@@ -95,8 +89,8 @@ export class CartController {
     @ResponseMessage('Update quantity success')
     @UseGuards(AtJwtGuard)
     @HttpCode(HttpStatus.OK)
-    async updateProductQuantity(@GetUserId() userId: string, @Body() updateCartDto: UpdateCartDto) {
-        return this.cartCommandService.updateProductQuantity(userId, updateCartDto);
+    async updateQuantity(@GetUserId() userId: string, @Body() updateCartDto: UpdateCartDto) {
+        return this.cartCommandService.updateQuantity(userId, updateCartDto);
     }
 
     @Delete()
@@ -110,7 +104,7 @@ export class CartController {
     @ResponseMessage('Remove success')
     @UseGuards(AtJwtGuard)
     @HttpCode(HttpStatus.OK)
-    async deleteProduct(@GetUserId() userId: string, @Body() deleteCartDto: DeleteCartDto) {
-        return this.cartCommandService.deleteProduct(userId, deleteCartDto);
+    async deleteItem(@GetUserId() userId: string, @Body() deleteCartDto: DeleteCartDto) {
+        return this.cartCommandService.deleteItem(userId, deleteCartDto);
     }
 }

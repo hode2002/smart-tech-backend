@@ -1,17 +1,18 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 
-import { PrismaService } from '@/prisma/prisma.service';
-import { ProductCartResponse } from '@/prisma/selectors/cart/cart.selector';
+import { Cart } from '@/prisma/selectors';
 import { CacheService } from '@v2/modules/cache/cache.service';
 import { CART_TOKENS } from '@v2/modules/cart/constants';
 import {
     CreateCartDto,
     UpdateCartDto,
-    ChangeProductOptionDto,
+    ChangeVariantDto,
     DeleteCartDto,
 } from '@v2/modules/cart/dto';
 import { ICartCommandRepository, ICartQueryService } from '@v2/modules/cart/interfaces';
 import { ICartCommandService } from '@v2/modules/cart/interfaces/cart.service.interface';
+import { PRODUCT_TOKENS } from '@v2/modules/product/constants';
+import { IProductQueryService } from '@v2/modules/product/interfaces';
 import { USER_TOKENS } from '@v2/modules/user/constants';
 import { IUserQueryService } from '@v2/modules/user/interfaces';
 
@@ -24,148 +25,129 @@ export class CartCommandService implements ICartCommandService {
         private readonly cartQueryService: ICartQueryService,
         @Inject(USER_TOKENS.SERVICES.USER_QUERY_SERVICE)
         private readonly userQueryService: IUserQueryService,
-        private readonly prismaService: PrismaService,
+        @Inject(PRODUCT_TOKENS.SERVICES.PRODUCT_QUERY)
+        private readonly productQueryService: IProductQueryService,
         private readonly cacheService: CacheService,
     ) {}
 
-    async addProductToCart(
-        userId: string,
-        createCartDto: CreateCartDto,
-    ): Promise<ProductCartResponse> {
-        const { productOptionId, quantity } = createCartDto;
+    async addItem(userId: string, createCartDto: CreateCartDto): Promise<Cart> {
+        const { variantId, quantity } = createCartDto;
 
         const user = await this.userQueryService.findById(userId);
         if (!user) {
             throw new NotFoundException('User not found');
         }
 
-        const userCart = await this.cartQueryService.findUserCart(userId, productOptionId);
+        const userCart = await this.cartQueryService.findByVariantId(userId, variantId);
 
-        let cartItem;
+        let cart: Cart;
         if (!userCart) {
-            cartItem = await this.commandRepository.create(userId, createCartDto);
+            cart = await this.commandRepository.create(userId, createCartDto);
         } else {
-            cartItem = await this.commandRepository.update(userCart.id, productOptionId, {
-                quantity: userCart.quantity + quantity,
+            cart = await this.commandRepository.update(userCart.id, variantId, {
+                quantity: userCart.items.reduce((acc, item) => acc + item.quantity, 0) + quantity,
             });
         }
 
         await Promise.all([
-            this.cacheService.del(`cart_user_${userId}_product_${productOptionId}`),
+            this.cacheService.del(`cart_user_${userId}_product_${variantId}`),
             this.cacheService.del(`cart_products_user_${userId}`),
         ]);
 
-        return this.cartQueryService.convertResponse(cartItem);
+        return cart;
     }
 
-    async changeProductOption(
-        userId: string,
-        changeProductOptionDto: ChangeProductOptionDto,
-    ): Promise<ProductCartResponse> {
-        const { oldOptionId, newOptionId } = changeProductOptionDto;
+    async changeVariant(userId: string, changeVariantDto: ChangeVariantDto): Promise<Cart> {
+        const { oldVariantId, newVariantId } = changeVariantDto;
 
         const user = await this.userQueryService.findById(userId);
         if (!user) {
             throw new NotFoundException('User not found');
         }
 
-        const userCart = await this.cartQueryService.findUserCart(userId, oldOptionId);
+        const userCart = await this.cartQueryService.findByVariantId(userId, oldVariantId);
         if (!userCart) {
             throw new NotFoundException('Product does not exist in cart');
         }
 
-        const productOption = await this.prismaService.productOption.findFirst({
-            where: { id: newOptionId },
-        });
-
-        if (!productOption) {
+        const productVariant = await this.productQueryService.findById(newVariantId);
+        if (!productVariant) {
             throw new NotFoundException('Product not found');
         }
 
-        const cartItem = await this.commandRepository.changeProductOption(
+        const cartItem = await this.commandRepository.changeVariant(
             userCart.id,
-            oldOptionId,
-            newOptionId,
+            oldVariantId,
+            newVariantId,
         );
 
         await Promise.all([
-            this.cacheService.del(`cart_user_${userId}_product_${oldOptionId}`),
-            this.cacheService.del(`cart_user_${userId}_product_${newOptionId}`),
+            this.cacheService.del(`cart_user_${userId}_product_${oldVariantId}`),
+            this.cacheService.del(`cart_user_${userId}_product_${newVariantId}`),
             this.cacheService.del(`cart_products_user_${userId}`),
         ]);
 
-        return this.cartQueryService.convertResponse(cartItem);
+        return cartItem;
     }
 
-    async updateProductQuantity(
-        userId: string,
-        updateCartDto: UpdateCartDto,
-    ): Promise<ProductCartResponse> {
-        const { productOptionId, quantity } = updateCartDto;
+    async updateQuantity(userId: string, updateCartDto: UpdateCartDto): Promise<Cart> {
+        const { variantId, quantity } = updateCartDto;
 
         const user = await this.userQueryService.findById(userId);
         if (!user) {
             throw new NotFoundException('User not found');
         }
 
-        const userCart = await this.cartQueryService.findUserCart(userId, productOptionId);
+        const userCart = await this.cartQueryService.findByVariantId(userId, variantId);
         if (!userCart) {
             throw new NotFoundException('Product does not exist in cart');
         }
 
-        const productOption = await this.prismaService.productOption.findFirst({
-            where: { id: productOptionId },
-        });
-
-        if (!productOption) {
+        const productVariant = await this.productQueryService.findById(variantId);
+        if (!productVariant) {
             throw new NotFoundException('Product not found');
         }
 
-        const cartItemUpdated = await this.commandRepository.update(userCart.id, productOptionId, {
+        const cartItemUpdated = await this.commandRepository.update(userCart.id, variantId, {
             quantity,
         });
 
         await Promise.all([
-            this.cacheService.del(`cart_user_${userId}_product_${productOptionId}`),
+            this.cacheService.del(`cart_user_${userId}_product_${variantId}`),
             this.cacheService.del(`cart_products_user_${userId}`),
         ]);
 
-        return this.cartQueryService.convertResponse(cartItemUpdated);
+        return cartItemUpdated;
     }
 
-    async deleteProduct(
-        userId: string,
-        deleteCartDto: DeleteCartDto,
-    ): Promise<{ is_success: boolean }> {
-        const { productOptionId } = deleteCartDto;
+    async deleteItem(userId: string, deleteCartDto: DeleteCartDto): Promise<boolean> {
+        const { variantId } = deleteCartDto;
 
         const user = await this.userQueryService.findById(userId);
         if (!user) {
             throw new NotFoundException('User not found');
         }
 
-        const userCart = await this.cartQueryService.findUserCart(userId, productOptionId);
+        const userCart = await this.cartQueryService.findByVariantId(userId, variantId);
         if (!userCart) {
             throw new NotFoundException('Product does not exist in cart');
         }
 
-        const productOption = await this.prismaService.productOption.findFirst({
-            where: { id: productOptionId },
-        });
-
-        if (!productOption) {
+        const productVariant = await this.productQueryService.findById(variantId);
+        if (!productVariant) {
             throw new NotFoundException('Product not found');
         }
 
-        const isDeleted = await this.commandRepository.delete(userCart.id);
-
-        await Promise.all([
-            this.cacheService.del(`cart_user_${userId}_product_${productOptionId}`),
+        const [isDeleted] = await Promise.all([
+            this.commandRepository.delete(userCart.id),
+            this.cacheService.del(`cart_user_${userId}_product_${variantId}`),
             this.cacheService.del(`cart_products_user_${userId}`),
         ]);
 
-        return {
-            is_success: isDeleted,
-        };
+        return !!isDeleted;
+    }
+
+    async clearItems(userId: string, variantIds: string[]): Promise<boolean> {
+        return this.commandRepository.clearItems(userId, variantIds);
     }
 }

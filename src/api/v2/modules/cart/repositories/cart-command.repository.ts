@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '@/prisma/prisma.service';
-import { CART_ITEM_SELECT, ProductCartDB } from '@/prisma/selectors/cart/cart.selector';
+import { CART_FULL_SELECT, Cart } from '@/prisma/selectors';
 import { CreateCartDto } from '@v2/modules/cart/dto';
 import { ICartCommandRepository } from '@v2/modules/cart/interfaces';
 
@@ -9,68 +9,91 @@ import { ICartCommandRepository } from '@v2/modules/cart/interfaces';
 export class CartCommandRepository implements ICartCommandRepository {
     constructor(private readonly prisma: PrismaService) {}
 
-    async create(userId: string, createCartDto: CreateCartDto): Promise<ProductCartDB> {
-        const { productOptionId, quantity } = createCartDto;
+    async create(userId: string, createCartDto: CreateCartDto): Promise<Cart> {
+        const { variantId, quantity } = createCartDto;
 
         return this.prisma.cart.create({
             data: {
                 user_id: userId,
-                product_option_id: productOptionId,
-                quantity,
+                items: {
+                    create: {
+                        variant_id: variantId,
+                        quantity,
+                    },
+                },
             },
-            select: CART_ITEM_SELECT,
+            select: CART_FULL_SELECT,
         });
     }
 
-    async update(
-        cartId: string,
-        productOptionId: string,
-        data: { quantity: number },
-    ): Promise<ProductCartDB> {
+    async update(cartId: string, variantId: string, data: { quantity: number }): Promise<Cart> {
         const cart = await this.prisma.cart.findUnique({
-            where: { id: cartId },
-            select: { user_id: true },
-        });
-
-        return this.prisma.cart.update({
             where: {
                 id: cartId,
-                product_option_id: productOptionId,
-                user_id: cart.user_id,
+                items: { some: { variant_id: variantId } },
+            },
+            select: {
+                user_id: true,
+                items: { select: { id: true } },
+            },
+        });
+
+        if (!cart) {
+            throw new NotFoundException('Cart not found');
+        }
+
+        return this.prisma.cartItem.update({
+            where: {
+                id: cart.items[0].id,
             },
             data,
-            select: CART_ITEM_SELECT,
+            select: CART_FULL_SELECT,
         });
     }
 
-    async changeProductOption(
-        cartId: string,
-        oldOptionId: string,
-        newOptionId: string,
-    ): Promise<ProductCartDB> {
+    async changeVariant(cartId: string, oldVariantId: string, newVariantId: string): Promise<Cart> {
         const cart = await this.prisma.cart.findUnique({
-            where: { id: cartId },
-            select: { user_id: true },
+            where: { id: cartId, items: { some: { variant_id: oldVariantId } } },
+            select: {
+                user_id: true,
+                items: { select: { id: true } },
+            },
         });
 
-        return this.prisma.cart.update({
+        if (!cart) {
+            throw new NotFoundException('Cart not found');
+        }
+
+        return this.prisma.cartItem.update({
             where: {
-                id: cartId,
-                product_option_id: oldOptionId,
-                user_id: cart.user_id,
+                id: cart.items[0].id,
+                variant_id: oldVariantId,
             },
             data: {
-                product_option_id: newOptionId,
+                variant_id: newVariantId,
             },
-            select: CART_ITEM_SELECT,
+            select: CART_FULL_SELECT,
         });
     }
 
     async delete(cartId: string): Promise<boolean> {
-        await this.prisma.cart.delete({
+        const result = await this.prisma.cart.delete({
             where: { id: cartId },
         });
 
-        return true;
+        return result !== null;
+    }
+
+    async clearItems(userId: string, variantIds: string[]): Promise<boolean> {
+        const result = await this.prisma.cartItem.deleteMany({
+            where: {
+                cart: {
+                    user_id: userId,
+                },
+                variant_id: { in: variantIds },
+            },
+        });
+
+        return result.count > 0;
     }
 }
