@@ -1,21 +1,21 @@
 import { Injectable } from '@nestjs/common';
-import { Delivery } from '@prisma/client';
+import { Delivery, DeliveryStatus } from '@prisma/client';
 
 import { PrismaService } from '@/prisma/prisma.service';
-import { CreateDeliveryDto, UpdateDeliveryDto } from '@v2/modules/delivery/dto';
 import { IDeliveryCommandRepository } from '@v2/modules/delivery/interfaces';
+import { DeliveryCreateInput, DeliveryUpdateInput } from '@v2/modules/delivery/types';
 
 @Injectable()
 export class DeliveryCommandRepository implements IDeliveryCommandRepository {
     constructor(private readonly prisma: PrismaService) {}
 
-    async create(data: CreateDeliveryDto & { slug: string }): Promise<Delivery> {
+    async create(data: DeliveryCreateInput): Promise<Delivery> {
         return this.prisma.delivery.create({
             data,
         });
     }
 
-    async update(id: string, data: UpdateDeliveryDto): Promise<Delivery> {
+    async update(id: string, data: DeliveryUpdateInput): Promise<Delivery> {
         return this.prisma.delivery.update({
             where: { id },
             data,
@@ -23,19 +23,25 @@ export class DeliveryCommandRepository implements IDeliveryCommandRepository {
     }
 
     async softDelete(id: string): Promise<boolean> {
-        await this.prisma.delivery.update({
-            where: { id },
-            data: { status: 1 },
-        });
+        return this.updateStatus(id, DeliveryStatus.INACTIVE);
+    }
 
-        return true;
+    async restore(id: string): Promise<boolean> {
+        return this.updateStatus(id, DeliveryStatus.ACTIVE);
     }
 
     async permanentlyDelete(id: string): Promise<boolean> {
-        await this.prisma.delivery.delete({
+        const result = await this.prisma.delivery.delete({
             where: { id },
         });
+        return !!result;
+    }
 
-        return true;
+    private async updateStatus(id: string, status: DeliveryStatus): Promise<boolean> {
+        const result = await this.prisma.delivery.update({
+            where: { id },
+            data: { status },
+        });
+        return !!result;
     }
 }

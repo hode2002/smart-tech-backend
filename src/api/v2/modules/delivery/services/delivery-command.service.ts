@@ -1,27 +1,32 @@
-import { ConflictException, Inject, Injectable } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { DeliveryStatus } from '@prisma/client';
 
-import { CacheService } from '@/api/v2/modules/cache/cache.service';
 import { generateSlug } from '@/common/utils';
-import { DELIVERY_COMMAND_REPOSITORY } from '@v2/modules/delivery/constants';
+import { CacheService } from '@v2/modules/cache/cache.service';
+import { DELIVERY_TOKENS } from '@v2/modules/delivery/constants';
 import { CreateDeliveryDto, UpdateDeliveryDto } from '@v2/modules/delivery/dto';
-import { IDeliveryCommandRepository } from '@v2/modules/delivery/interfaces';
-import { DeliveryQueryService } from '@v2/modules/delivery/services';
+import {
+    IDeliveryCommandRepository,
+    IDeliveryCommandService,
+    IDeliveryQueryService,
+} from '@v2/modules/delivery/interfaces';
 
 @Injectable()
-export class DeliveryCommandService {
+export class DeliveryCommandService implements IDeliveryCommandService {
     constructor(
         private readonly cacheService: CacheService,
-        @Inject(DELIVERY_COMMAND_REPOSITORY)
+        @Inject(DELIVERY_TOKENS.COMMAND_REPOSITORY)
         private readonly commandRepository: IDeliveryCommandRepository,
-        private readonly deliveryQueryService: DeliveryQueryService,
+        @Inject(DELIVERY_TOKENS.QUERY_SERVICE)
+        private readonly deliveryQueryService: IDeliveryQueryService,
     ) {}
 
     async create(createDeliveryDto: CreateDeliveryDto) {
         const slug = generateSlug(createDeliveryDto.name);
 
-        const existingCategory = await this.deliveryQueryService.findBySlug(slug, {}, true);
-        if (existingCategory) {
-            throw new ConflictException('Category Already Exists');
+        const existingDelivery = await this.deliveryQueryService.findBySlug(slug);
+        if (existingDelivery) {
+            throw new ConflictException('Delivery Already Exists');
         }
 
         await this.cacheService.deleteByPattern('deliveries_*');
@@ -30,24 +35,38 @@ export class DeliveryCommandService {
             ...createDeliveryDto,
             slug,
         };
-        return this.commandRepository.create(data);
+
+        const delivery = await this.commandRepository.create(data);
+        await this.invalidateCache(delivery.id, delivery.slug);
+
+        return delivery;
     }
 
     async update(id: string, updateDeliveryDto: UpdateDeliveryDto) {
         const delivery = await this.deliveryQueryService.findById(id);
-        const result = await this.commandRepository.update(id, updateDeliveryDto);
+        if (!delivery) {
+            throw new NotFoundException('Delivery not found');
+        }
 
-        await Promise.all([
-            this.cacheService.del(`delivery_id_${id}`),
-            this.cacheService.del(`delivery_slug_${delivery.slug}`),
-            this.cacheService.deleteByPattern('deliveries_*'),
+        const [result] = await Promise.all([
+            this.commandRepository.update(id, {
+                ...updateDeliveryDto,
+                slug: generateSlug(updateDeliveryDto.name),
+            }),
+            this.invalidateCache(id, delivery.slug),
         ]);
+
+        await this.invalidateCache(id, delivery.slug);
 
         return result;
     }
 
     async softDelete(id: string) {
-        const delivery = await this.deliveryQueryService.findById(id, { status: 0 });
+        const delivery = await this.deliveryQueryService.findById(id);
+        if (!delivery) {
+            throw new NotFoundException('Delivery not found');
+        }
+
         const result = await this.commandRepository.softDelete(id);
 
         await Promise.all([
@@ -56,32 +75,46 @@ export class DeliveryCommandService {
             this.cacheService.deleteByPattern('deliveries_*'),
         ]);
 
-        return result;
+        return !!result;
     }
 
     async permanentlyDelete(id: string) {
         const delivery = await this.deliveryQueryService.findById(id);
-        const result = await this.commandRepository.permanentlyDelete(id);
 
-        await Promise.all([
-            this.cacheService.del(`delivery_id_${id}`),
-            this.cacheService.del(`delivery_slug_${delivery.slug}`),
-            this.cacheService.deleteByPattern('deliveries_*'),
+        if (!delivery) {
+            throw new NotFoundException('Delivery not found');
+        }
+
+        const result = await Promise.all([
+            this.commandRepository.permanentlyDelete(id),
+            this.invalidateCache(id, delivery.slug),
         ]);
 
-        return result;
+        return !!result;
     }
 
     async restore(id: string) {
-        const delivery = await this.deliveryQueryService.findById(id, { status: 1 }, true);
-        const result = await this.commandRepository.update(id, { status: 0 });
+        const delivery = await this.deliveryQueryService.findById(id);
 
-        await Promise.all([
-            this.cacheService.del(`delivery_id_${id}`),
-            this.cacheService.del(`delivery_slug_${delivery.slug}`),
-            this.cacheService.deleteByPattern('deliveries_*'),
+        if (!delivery) {
+            throw new NotFoundException('Delivery not found');
+        }
+
+        const result = await Promise.all([
+            this.commandRepository.update(id, {
+                status: DeliveryStatus.ACTIVE,
+            }),
+            this.invalidateCache(id, delivery.slug),
         ]);
 
-        return result;
+        return !!result;
+    }
+
+    private async invalidateCache(id: string, slug: string) {
+        await Promise.all([
+            this.cacheService.del(`delivery_id_${id}`),
+            this.cacheService.del(`delivery_slug_${slug}`),
+            this.cacheService.deleteByPattern('deliveries_*'),
+        ]);
     }
 }

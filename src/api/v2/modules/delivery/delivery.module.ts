@@ -1,56 +1,45 @@
 import { Module } from '@nestjs/common';
 
-import { CacheService } from '@/api/v2/modules/cache/cache.service';
 import { CacheModule } from '@v2/modules/cache/cache.module';
+import { CacheService } from '@v2/modules/cache/cache.service';
 import { CommonModule } from '@v2/modules/common/common.module';
 import { CommonService } from '@v2/modules/common/common.service';
-import {
-    DELIVERY_COMMAND_REPOSITORY,
-    DELIVERY_QUERY_REPOSITORY,
-} from '@v2/modules/delivery/constants';
+import { DELIVERY_TOKENS } from '@v2/modules/delivery/constants';
 import { DeliveryController } from '@v2/modules/delivery/delivery.controller';
-import { IDeliveryCommandRepository } from '@v2/modules/delivery/interfaces';
 import {
     DeliveryCommandRepository,
     DeliveryQueryRepository,
 } from '@v2/modules/delivery/repositories';
-import {
-    DeliveryCommandService,
-    DeliveryQueryService,
-    DeliveryService,
-} from '@v2/modules/delivery/services';
+import { DeliveryCommandService, DeliveryQueryService } from '@v2/modules/delivery/services';
 
 @Module({
     imports: [CommonModule, CacheModule.register({})],
     controllers: [DeliveryController],
     providers: [
         CommonService,
+        CacheService,
         {
-            provide: DELIVERY_QUERY_REPOSITORY,
+            provide: DELIVERY_TOKENS.QUERY_REPOSITORY,
             useClass: DeliveryQueryRepository,
         },
         {
-            provide: DELIVERY_COMMAND_REPOSITORY,
+            provide: DELIVERY_TOKENS.COMMAND_REPOSITORY,
             useClass: DeliveryCommandRepository,
         },
-        DeliveryService,
-        DeliveryQueryService,
         {
-            provide: DeliveryCommandService,
-            useFactory: (
-                cacheService: CacheService,
-                deliveryCommandRepo: IDeliveryCommandRepository,
-                deliveryQueryService: DeliveryQueryService,
-            ) => {
-                return new DeliveryCommandService(
-                    cacheService,
-                    deliveryCommandRepo,
-                    deliveryQueryService,
-                );
-            },
-            inject: [CacheService, DELIVERY_COMMAND_REPOSITORY, DeliveryQueryService],
+            provide: DELIVERY_TOKENS.QUERY_SERVICE,
+            useClass: DeliveryQueryService,
+        },
+        {
+            provide: DELIVERY_TOKENS.COMMAND_SERVICE,
+            useClass: DeliveryCommandService,
         },
     ],
-    exports: [DeliveryService, DeliveryQueryService, DeliveryCommandService],
+    exports: [
+        DELIVERY_TOKENS.QUERY_SERVICE,
+        DELIVERY_TOKENS.COMMAND_SERVICE,
+        DELIVERY_TOKENS.QUERY_REPOSITORY,
+        DELIVERY_TOKENS.COMMAND_REPOSITORY,
+    ],
 })
 export class DeliveryModule {}

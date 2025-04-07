@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { DeliveryStatus } from '@prisma/client';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class UpdateDeliveryDto {
     @ApiPropertyOptional({
@@ -13,7 +14,7 @@ export class UpdateDeliveryDto {
     @ApiPropertyOptional({
         description: 'Status of the delivery method',
     })
-    @IsNumber()
+    @IsEnum(DeliveryStatus)
     @IsOptional()
-    status?: number;
+    status?: DeliveryStatus;
 }

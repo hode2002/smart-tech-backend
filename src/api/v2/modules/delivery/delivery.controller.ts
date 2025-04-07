@@ -19,20 +19,25 @@ import {
     ApiQuery,
     ApiBearerAuth,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { UserRole } from '@prisma/client';
 
+import {
+    IDeliveryCommandService,
+    IDeliveryQueryService,
+} from '@/api/v2/modules/delivery/interfaces';
 import { Permission, ResponseMessage } from '@/common/decorators';
 import { PaginationDto } from '@/common/dtos';
 import { RoleGuard } from '@/common/guards';
 import { AtJwtGuard } from '@v2/modules/auth/guards';
-import { DeliveryService } from '@v2/modules/delivery/services/delivery.service';
-
-import { CreateDeliveryDto, UpdateDeliveryDto } from './dto';
+import { CreateDeliveryDto, UpdateDeliveryDto } from '@v2/modules/delivery/dto';
 
 @ApiTags('Delivery')
 @Controller('delivery')
 export class DeliveryController {
-    constructor(private readonly deliveryService: DeliveryService) {}
+    constructor(
+        private readonly queryService: IDeliveryQueryService,
+        private readonly commandService: IDeliveryCommandService,
+    ) {}
 
     @Post()
     @ApiBearerAuth('access-token')
@@ -46,11 +51,11 @@ export class DeliveryController {
         description: 'Unauthorized',
     })
     @ResponseMessage('Create success')
-    @Permission(Role.ADMIN)
+    @Permission(UserRole.ADMIN)
     @UseGuards(AtJwtGuard, RoleGuard)
     @HttpCode(HttpStatus.CREATED)
     async create(@Body() createDeliveryDto: CreateDeliveryDto) {
-        return await this.deliveryService.create(createDeliveryDto);
+        return await this.commandService.create(createDeliveryDto);
     }
 
     @Get()
@@ -64,7 +69,7 @@ export class DeliveryController {
     @ResponseMessage('Get all delivery success')
     @HttpCode(HttpStatus.OK)
     async findAll(@Query() pagination: PaginationDto) {
-        return await this.deliveryService.findAll(pagination.page, pagination.limit);
+        return await this.queryService.findAll(pagination.page, pagination.limit);
     }
 
     @Get('admin')
@@ -77,11 +82,11 @@ export class DeliveryController {
         description: 'Return all delivery methods for admin',
     })
     @ResponseMessage('Get all delivery success')
-    @Permission(Role.ADMIN)
+    @Permission(UserRole.ADMIN)
     @UseGuards(AtJwtGuard, RoleGuard)
     @HttpCode(HttpStatus.OK)
-    async adminFindAll(@Query() pagination: PaginationDto) {
-        return await this.deliveryService.adminFindAll(pagination.page, pagination.limit);
+    async findAllManagement(@Query() pagination: PaginationDto) {
+        return await this.queryService.findAllManagement(pagination.page, pagination.limit);
     }
 
     @Get(':id')
@@ -98,7 +103,7 @@ export class DeliveryController {
     @ResponseMessage('Get delivery by id success')
     @HttpCode(HttpStatus.OK)
     async findById(@Param('id') id: string) {
-        return await this.deliveryService.findById(id);
+        return await this.queryService.findById(id);
     }
 
     @Patch(':id')
@@ -114,11 +119,11 @@ export class DeliveryController {
         description: 'Delivery method not found',
     })
     @ResponseMessage('Update delivery success')
-    @Permission(Role.ADMIN)
+    @Permission(UserRole.ADMIN)
     @UseGuards(AtJwtGuard, RoleGuard)
     @HttpCode(HttpStatus.OK)
     async update(@Param('id') id: string, @Body() updateDeliveryDto: UpdateDeliveryDto) {
-        return await this.deliveryService.update(id, updateDeliveryDto);
+        return await this.commandService.update(id, updateDeliveryDto);
     }
 
     @Patch(':id/restore')
@@ -130,11 +135,11 @@ export class DeliveryController {
         description: 'Delivery method restored successfully',
     })
     @ResponseMessage('Restore delivery successfully')
-    @Permission(Role.ADMIN)
+    @Permission(UserRole.ADMIN)
     @UseGuards(AtJwtGuard, RoleGuard)
     @HttpCode(HttpStatus.OK)
     async restore(@Param('id') id: string) {
-        return this.deliveryService.restore(id);
+        return this.commandService.restore(id);
     }
 
     @Delete(':id')
@@ -146,11 +151,11 @@ export class DeliveryController {
         description: 'Delivery method soft deleted successfully',
     })
     @ResponseMessage('Remove delivery success')
-    @Permission(Role.ADMIN)
+    @Permission(UserRole.ADMIN)
     @UseGuards(AtJwtGuard, RoleGuard)
     @HttpCode(HttpStatus.OK)
     async remove(@Param('id') id: string) {
-        return await this.deliveryService.softDelete(id);
+        return await this.commandService.softDelete(id);
     }
 
     @Delete('permanent/:id')
@@ -166,10 +171,10 @@ export class DeliveryController {
         description: 'Delivery method not found',
     })
     @ResponseMessage('Remove delivery success')
-    @Permission(Role.ADMIN)
+    @Permission(UserRole.ADMIN)
     @UseGuards(AtJwtGuard, RoleGuard)
     @HttpCode(HttpStatus.OK)
     async permanentlyDelete(@Param('id') id: string) {
-        return await this.deliveryService.permanentlyDelete(id);
+        return await this.commandService.permanentlyDelete(id);
     }
 }

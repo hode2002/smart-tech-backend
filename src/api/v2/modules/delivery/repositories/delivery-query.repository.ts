@@ -4,7 +4,7 @@ import { formatPagination } from '@/common/helpers';
 import { PrismaService } from '@/prisma/prisma.service';
 import { DELIVERY_FULL_SELECT } from '@/prisma/selectors';
 import { IDeliveryQueryRepository } from '@v2/modules/delivery/interfaces';
-import { DeliveryWhereInput } from '@v2/modules/delivery/types';
+import { DeliveryWhereInput, DeliveryWhereUniqueInput } from '@v2/modules/delivery/types';
 
 @Injectable()
 export class DeliveryQueryRepository implements IDeliveryQueryRepository {
@@ -25,7 +25,7 @@ export class DeliveryQueryRepository implements IDeliveryQueryRepository {
         return formatPagination({ deliveries }, total, page, limit);
     }
 
-    async findById(id: string, where: DeliveryWhereInput) {
+    async findById(id: string, where?: DeliveryWhereUniqueInput) {
         return this.prisma.delivery.findUnique({
             where: { id, ...where },
             select: DELIVERY_FULL_SELECT,

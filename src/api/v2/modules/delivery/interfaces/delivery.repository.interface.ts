@@ -1,19 +1,24 @@
 import { Delivery } from '@prisma/client';
 
 import { Pagination } from '@/common/types';
-import { CreateDeliveryDto, UpdateDeliveryDto } from '@v2/modules/delivery/dto';
-import { DeliveryWhereInput } from '@v2/modules/delivery/types';
+import {
+    DeliveryUpdateInput,
+    DeliveryCreateInput,
+    DeliveryWhereInput,
+    DeliveryWhereUniqueInput,
+} from '@v2/modules/delivery/types';
 
 export interface IDeliveryQueryRepository {
-    findById(id: string, where?: DeliveryWhereInput): Promise<Delivery>;
+    findById(id: string, where?: DeliveryWhereUniqueInput): Promise<Delivery>;
     findBySlug(slug: string, where?: DeliveryWhereInput): Promise<Delivery>;
     findAll(page: number, limit: number, where?: DeliveryWhereInput): Promise<Pagination<Delivery>>;
 }
 
 export interface IDeliveryCommandRepository {
-    create(data: CreateDeliveryDto): Promise<Delivery>;
-    update(id: string, data: UpdateDeliveryDto): Promise<Delivery>;
+    create(data: DeliveryCreateInput): Promise<Delivery>;
+    update(id: string, data: DeliveryUpdateInput): Promise<Delivery>;
     softDelete(id: string): Promise<boolean>;
+    restore(id: string): Promise<boolean>;
     permanentlyDelete(id: string): Promise<boolean>;
 }
 

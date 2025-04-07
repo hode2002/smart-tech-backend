@@ -1,4 +1,4 @@
 import { Prisma } from '@prisma/client';
 
-export type DeliveryWhereInput = Omit<Prisma.DeliveryWhereInput, 'id' | 'slug'>;
-export type DeliveryWhereUniqueInput = Omit<Prisma.DeliveryWhereInput, 'id'>;
+export type DeliveryWhereInput = Prisma.DeliveryWhereInput;
+export type DeliveryWhereUniqueInput = Prisma.DeliveryWhereUniqueInput;
