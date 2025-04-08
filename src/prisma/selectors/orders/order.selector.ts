@@ -1,9 +1,12 @@
 import { Prisma } from '@prisma/client';
 
+import { PRODUCT_VARIANT_SELECT } from '@/prisma/selectors/products';
+
 export const ORDER_USER_SELECT = {
     id: true,
     email: true,
     avatar: true,
+    full_name: true,
 } as const;
 
 export const ORDER_BRAND_SELECT = {
@@ -26,14 +29,17 @@ export const ORDER_DESCRIPTION_SELECT = {
 
 export const ORDER_SHIPPING_SELECT = {
     id: true,
-    address: true,
+    full_name: true,
+    phone: true,
+    address_line: true,
     province: true,
     district: true,
     ward: true,
-    hamlet: true,
+    tel: true,
     fee: true,
-    estimate_date: true,
-    tracking_number: true,
+    method: true,
+    estimated_date: true,
+    tracking_code: true,
     order_label: true,
     delivery: {
         select: {
@@ -50,67 +56,10 @@ export const ORDER_PAYMENT_SELECT = {
     transaction_id: true,
 } as const;
 
-export const ORDER_PRODUCT_SELECT = {
+export const ORDER_ITEM_SELECT = {
     id: true,
-    name: true,
-    brand: {
-        select: ORDER_BRAND_SELECT,
-    },
-    category: {
-        select: ORDER_CATEGORY_SELECT,
-    },
-    descriptions: {
-        select: ORDER_DESCRIPTION_SELECT,
-    },
-    label: true,
-    price: true,
-    promotions: true,
-    warranties: true,
-} as const;
-
-export const ORDER_PRODUCT_OPTION_VALUE_SELECT = {
-    option: {
-        select: {
-            name: true,
-        },
-    },
-    value: true,
-    adjust_price: true,
-} as const;
-
-export const ORDER_PRODUCT_OPTION_SELECT = {
-    id: true,
-    sku: true,
-    product: {
-        select: ORDER_PRODUCT_SELECT,
-    },
-    thumbnail: true,
-    product_option_value: {
-        select: ORDER_PRODUCT_OPTION_VALUE_SELECT,
-    },
-    technical_specs: {
-        select: {
-            specs: {
-                where: {
-                    key: 'Khối lượng',
-                },
-                select: {
-                    key: true,
-                    value: true,
-                },
-            },
-        },
-    },
-    label_image: true,
-    price_modifier: true,
-    discount: true,
-    slug: true,
-} as const;
-
-export const ORDER_DETAIL_SELECT = {
-    id: true,
-    product_option: {
-        select: ORDER_PRODUCT_OPTION_SELECT,
+    product_variants: {
+        select: PRODUCT_VARIANT_SELECT,
     },
     price: true,
     quantity: true,
@@ -119,17 +68,17 @@ export const ORDER_DETAIL_SELECT = {
 
 export const ORDER_BASIC_SELECT = {
     id: true,
-    name: true,
-    phone: true,
-    note: true,
-    order_date: true,
-    status: true,
+    order_number: true,
     total_amount: true,
+    shipping_fee: true,
+    status: true,
+    note: true,
+    created_at: true,
 } as const;
 
 export const ORDER_FULL_SELECT = {
     ...ORDER_BASIC_SELECT,
-    User: {
+    user: {
         select: ORDER_USER_SELECT,
     },
     shipping: {
@@ -138,15 +87,15 @@ export const ORDER_FULL_SELECT = {
     payment: {
         select: ORDER_PAYMENT_SELECT,
     },
-    order_details: {
-        select: ORDER_DETAIL_SELECT,
+    order_items: {
+        select: ORDER_ITEM_SELECT,
     },
 } as const;
 
 export const ORDER_CANCEL_SELECT = {
-    order_details: {
+    order_items: {
         select: {
-            product_option: {
+            product_variants: {
                 select: {
                     thumbnail: true,
                 },
