@@ -7,13 +7,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { authConfig, bullConfig, mailConfig, mongooseConfig, throttlerConfig } from '@/config';
 import { PrismaModule } from '@/prisma/prisma.module';
-import {
-    CartModule,
-    NotificationModule,
-    OrderModule,
-    ProductModule,
-    ReviewModule,
-} from '@v1/modules';
+import { NotificationModule } from '@v1/modules';
 import {
     AuthModule,
     OtpModule,
@@ -29,6 +23,11 @@ import {
     RedisModule,
     UserModule,
     VoucherModule,
+    CartModule,
+    ProductModule,
+    ReviewModule,
+    OrderModule,
+    ShippingModule,
 } from '@v2/modules';
 
 @Module({
@@ -57,6 +56,7 @@ import {
         VoucherModule,
         HealthModule,
         OtpModule,
+        ShippingModule,
     ],
     controllers: [],
     providers: [
