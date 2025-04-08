@@ -84,78 +84,18 @@ export class ProductCommandRepository implements IProductCommandRepository {
             const variants = await Promise.all(
                 productDto.variants.map(variant => {
                     return this.variantCommandRepository.create(product.id, variant);
-                    // const images = {
-                    //     createMany: {
-                    //         data: variant.images,
-                    //     },
-                    // };
-
-                    // const attributes = {
-                    //     createMany: {
-                    //         data: variant.attributes,
-                    //     },
-                    // };
-
-                    // const technical_specs = {
-                    //     create: {
-                    //         specs: {
-                    //             createMany: {
-                    //                 data: variant.technical_specs.items,
-                    //             },
-                    //         },
-                    //     },
-                    // };
-
-                    // let warranties = {};
-                    // if (variant.warranties) {
-                    //     warranties = {
-                    //         createMany: {
-                    //             data: variant.warranties,
-                    //         },
-                    //     };
-                    // }
-
-                    // let additional_specs = {};
-                    // if (variant.additional_specs) {
-                    //     additional_specs = {
-                    //         createMany: {
-                    //             data: variant.additional_specs,
-                    //         },
-                    //     };
-                    // }
-
-                    // return tx.productVariant.create({
-                    //     data: {
-                    //         product_id: product.id,
-                    //         sku: variant.sku,
-                    //         name: variant.name,
-                    //         price: variant.price,
-                    //         compare_at_price: variant.compare_at_price,
-                    //         stock_quantity: variant.stock_quantity,
-                    //         weight: variant.weight,
-                    //         thumbnail: variant.thumbnail,
-                    //         status: variant.status || 'ACTIVE',
-                    //         is_default: variant.is_default || false,
-                    //         images,
-                    //         attributes,
-                    //         technical_specs,
-                    //         warranties,
-                    //         additional_specs,
-                    //     },
-                    //     select: PRODUCT_VARIANT_SELECT,
-                    // });
                 }),
             );
 
             for (let i = 0; i < variants.length; i++) {
                 const variant = variants[i];
-                const attributes = variant.attributes;
+                const variantAttributes = variant.variant_attributes;
 
                 await Promise.all([
                     tx.variantAttribute.createMany({
-                        data: attributes.map(item => ({
+                        data: variantAttributes.map(item => ({
                             variant_id: variant.id,
-                            attribute_id: item.attribute.id,
+                            attribute_id: item.attributes.id,
                             value: item.value,
                         })),
                     }),
