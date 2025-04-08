@@ -1,0 +1,12 @@
+export const PAYMENT_TOKENS = {
+    PAYMENT_SERVICE: Symbol('PAYMENT_SERVICE'),
+    PAYMENT_FACTORY: Symbol('PAYMENT_FACTORY'),
+    PROVIDERS: {
+        COD: Symbol('COD_PAYMENT_PROVIDER'),
+        VNPAY: Symbol('VNPAY_PAYMENT_PROVIDER'),
+    },
+    REPOSITORIES: {
+        COMMAND: Symbol('PAYMENT_COMMAND_REPOSITORY'),
+        QUERY: Symbol('PAYMENT_QUERY_REPOSITORY'),
+    },
+};
