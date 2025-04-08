@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Status } from '@prisma/client';
+import { VoucherStatus } from '@prisma/client';
 
 import { PrismaService } from '@/prisma/prisma.service';
 import { VOUCHER_BASIC_SELECT, VoucherBasic } from '@/prisma/selectors';
@@ -42,7 +42,7 @@ export class VoucherCommandRepository implements IVoucherCommandRepository {
     async delete(id: string): Promise<boolean> {
         const result = await this.prisma.voucher.update({
             where: { id },
-            data: { status: Status.INACTIVE },
+            data: { status: VoucherStatus.INACTIVE },
             select: { id: true },
         });
 
@@ -52,7 +52,7 @@ export class VoucherCommandRepository implements IVoucherCommandRepository {
     async restore(id: string): Promise<boolean> {
         const result = await this.prisma.voucher.update({
             where: { id },
-            data: { status: Status.ACTIVE },
+            data: { status: VoucherStatus.ACTIVE },
             select: { id: true },
         });
 

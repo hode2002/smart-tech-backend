@@ -16,6 +16,7 @@ export interface IVoucherQueryRepository {
         limit: number,
         where?: VoucherWhereInput,
     ): Promise<Pagination<VoucherBasic>>;
+    findByVoucherCodes(voucherCodes: string[]): Promise<VoucherBasic[]>;
 }
 
 export interface IVoucherCommandRepository {

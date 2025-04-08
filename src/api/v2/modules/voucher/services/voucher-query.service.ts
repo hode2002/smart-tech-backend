@@ -1,9 +1,8 @@
 import { Injectable, NotFoundException, ForbiddenException, Inject } from '@nestjs/common';
-import { VoucherType, Status } from '@prisma/client';
+import { VoucherType, VoucherStatus } from '@prisma/client';
 import moment from 'moment';
 
 import { Pagination } from '@/common/types';
-import { PrismaService } from '@/prisma/prisma.service';
 import { VOUCHER_BASIC_SELECT, VoucherBasic } from '@/prisma/selectors';
 import { VOUCHER_TOKENS } from '@v2/modules/voucher/constants';
 import { CheckValidVoucherDto } from '@v2/modules/voucher/dtos';
@@ -15,7 +14,6 @@ export class VoucherQueryService implements IVoucherQueryService {
     constructor(
         @Inject(VOUCHER_TOKENS.REPOSITORIES.VOUCHER_QUERY_REPOSITORY)
         private readonly voucherQueryRepo: IVoucherQueryRepository,
-        private readonly prismaService: PrismaService,
     ) {}
 
     async calculateVoucherDiscount(voucherCodes: string[], totalPrice: number): Promise<number> {
@@ -27,7 +25,7 @@ export class VoucherQueryService implements IVoucherQueryService {
 
         for (const voucherCode of voucherCodes) {
             const voucher = await this.findByVoucherCode(voucherCode);
-            if (voucher && voucher.status === Status.ACTIVE) {
+            if (voucher && voucher.status === VoucherStatus.ACTIVE) {
                 if (voucher.type === VoucherType.PERCENTAGE) {
                     voucherDiscount += (totalPrice * voucher.value) / 100;
                 } else {
@@ -57,7 +55,7 @@ export class VoucherQueryService implements IVoucherQueryService {
     }
 
     checkVoucherExpired(voucher: VoucherBasic) {
-        if (voucher.status === Status.INACTIVE) {
+        if (voucher.status === VoucherStatus.INACTIVE) {
             throw new ForbiddenException('Voucher expired!');
         }
     }
@@ -90,6 +88,11 @@ export class VoucherQueryService implements IVoucherQueryService {
             throw new NotFoundException('Voucher not found');
         }
         return voucher;
+    }
+
+    async findByVoucherCodes(voucherCodes: string[]): Promise<VoucherBasic[]> {
+        const vouchers = await this.voucherQueryRepo.findByVoucherCodes(voucherCodes);
+        return vouchers;
     }
 
     async checkValidVoucher(userId: string, checkValidVoucherDto: CheckValidVoucherDto) {

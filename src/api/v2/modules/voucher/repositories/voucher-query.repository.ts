@@ -37,4 +37,11 @@ export class VoucherQueryRepository implements IVoucherQueryRepository {
         ]);
         return formatPagination({ vouchers }, total, page, limit);
     }
+
+    async findByVoucherCodes(voucherCodes: string[]): Promise<VoucherBasic[]> {
+        return this.prisma.voucher.findMany({
+            where: { code: { in: voucherCodes } },
+            select: VOUCHER_BASIC_SELECT,
+        });
+    }
 }

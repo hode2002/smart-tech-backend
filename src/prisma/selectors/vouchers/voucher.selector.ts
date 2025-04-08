@@ -22,6 +22,12 @@ export const VOUCHER_ORDER_SELECT = {
         select: {
             id: true,
             order_id: true,
+            voucher: {
+                select: {
+                    id: true,
+                    code: true,
+                },
+            },
         },
     },
 } as const;

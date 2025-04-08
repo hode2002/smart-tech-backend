@@ -8,6 +8,7 @@ export interface IVoucherQueryService {
     findFirst<T>(where: VoucherWhereInput, select?: any): Promise<T>;
     findById(id: string): Promise<VoucherBasic>;
     findByVoucherCode(voucherCode: string): Promise<VoucherBasic>;
+    findByVoucherCodes(voucherCodes: string[]): Promise<VoucherBasic[]>;
     checkValidDate(voucher: VoucherBasic): void;
     checkVoucherExpired(voucher: VoucherBasic): void;
     checkValidVoucher(userId: string, checkValidVoucherDto: CheckValidVoucherDto): Promise<boolean>;
@@ -19,7 +20,7 @@ export interface IVoucherCommandService {
     update(id: string, updateVoucherDto: UpdateVoucherDto): Promise<VoucherBasic>;
     delete(id: string): Promise<boolean>;
     restore(id: string): Promise<boolean>;
-    applyVoucherToOrder(orderId: string, voucherCode: string): Promise<boolean>;
+    applyVoucherToOrder(orderId: string, voucherCodes: string[]): Promise<boolean>;
 }
 
 export interface IVoucherService extends IVoucherQueryService, IVoucherCommandService {}
