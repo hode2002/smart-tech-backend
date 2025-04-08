@@ -1,0 +1,11 @@
+export const ORDER_TOKENS = {
+    REPOSITORIES: {
+        ORDER_COMMAND: Symbol('ORDER_COMMAND_REPOSITORY'),
+        ORDER_QUERY: Symbol('ORDER_QUERY_REPOSITORY'),
+    },
+    SERVICES: {
+        ORDER_COMMAND: Symbol('ORDER_COMMAND_SERVICE'),
+        ORDER_QUERY: Symbol('ORDER_QUERY_SERVICE'),
+        ORDER_STATUS: Symbol('ORDER_STATUS_SERVICE'),
+    },
+};
