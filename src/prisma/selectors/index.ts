@@ -7,3 +7,4 @@ export * from './banners';
 export * from './brands';
 export * from './categories';
 export * from './delivery';
+export * from './cart';
